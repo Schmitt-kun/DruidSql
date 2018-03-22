@@ -1,0 +1,37 @@
+apply plugin: "java"
+
+defaultTasks "clean", "all"
+
+dependencies {
+	compile fileTree(dir: "./lib", include: "*.jar")
+}
+
+jar {
+	doFirst {
+		manifest {
+			def cp = configurations.compile.collect { "lib/${it.name}" }.join(" ")
+			attributes(
+				"Main-Class": "ru.kuznetsov.sqldispatch.Main",
+				"Class-Path": cp
+			)
+		}
+	}
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir "src"
+        }
+    }
+    test {
+        java {
+            srcDir "test"
+        }
+    }
+}
+
+task all() << {
+}
+
+all.dependsOn("assemble")
