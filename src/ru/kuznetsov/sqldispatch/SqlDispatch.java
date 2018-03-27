@@ -70,8 +70,9 @@ public class SqlDispatch {
 			where();
 	}
 	
-	private void splitQuery(String query) {
+	public void splitQuery(String query) {
 		Integer lastWordBegin = null;
+		if (words == null) words = new ArrayList<>();
 		
 		for (int i = 0; i < query.length(); i++) {
 			if (query.charAt(i) == ' ' 
@@ -82,7 +83,9 @@ public class SqlDispatch {
 					words.add(word);
 					lastWordBegin = null;
 				}
-			} else if (query.charAt(i) == ',') {
+			} else if (query.charAt(i) == ','
+					|| query.charAt(i) == '('
+					|| query.charAt(i) == ')') {
 				if (lastWordBegin != null) {
 					String word = query.substring(lastWordBegin, i);
 					words.add(word);
@@ -168,7 +171,22 @@ public class SqlDispatch {
 			String val = nextWord();
 			
 			FilterType type = SqlFilter.findFiltwerType(op);
-			filter = new SqlFilter(field, type, val);
+			if (type != FilterType.in) {
+				filter = new SqlFilter(field, type, val);
+			} else {
+				if(!"(".equals(val))
+					throw new SQLException("After IN expectyed \"(\", but was \"" + val + "\"");
+				
+				List<String> inFields = new ArrayList<>();
+				do {
+					val = nextWord();
+					inFields.add(val);
+					val = nextWord();
+				} while(!")".equals(val));
+				
+				String[] inFieldsArray = inFields.toArray(new String[]{});
+				filter = new SqlFilter(field, type, inFieldsArray);
+			}
 			if (typeGroup != null) {
 				SqlFilterGroup newFilter = new SqlFilterGroup(filter);
 				if (currentGroup == rootGroup)
