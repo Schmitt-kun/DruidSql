@@ -239,33 +239,53 @@ public class SqlDispatch {
 		query.add("intervals", intervals);
 		
 		if(rootGroup != null) {
-			query.addProperty("filter", filterGroupsToJson(rootGroup));
+			query.add("filter", filterGroupsToJson(rootGroup));
 		}
 		
 		return gson.toJson(query);
 	}
 	
-	public String filterGroupsToJson(SqlFilterGroup group) {
+	public JsonObject filterGroupsToJson(SqlFilterGroup group) {
 		
 		switch (group.getType()) {
 		case SINGLE:
-			Gson gson = new GsonBuilder().setPrettyPrinting().create();
-			JsonObject object = new JsonObject();
-			object.addProperty("type", "selector");
-			object.addProperty("dimension", group.getFilter().getLeftOp());
-			object.addProperty("value", group.getFilter().getRightOp());
-			return gson.toJson(object);
+			//Gson gson = new GsonBuilder().setPrettyPrinting().create();
+			return filterToJson(group.getFilter());
 		case AND:
 		case OR:
 			JsonParser parser = new JsonParser();
 			JsonObject object1 = new JsonObject();
 			object1.addProperty("type", group.getType().name());
 			JsonArray array = new JsonArray();
-			array.add(parser.parse(filterGroupsToJson(group.getLeftOp())));
-			array.add(parser.parse(filterGroupsToJson(group.getRightOp())));
+			array.add(filterGroupsToJson(group.getLeftOp()));
+			array.add(filterGroupsToJson(group.getRightOp()));
 			object1.add("fields", array);
-			return object1.toString();
+			return object1;
 		}
-		return "\"\"";
+		return null;
+	}
+	
+	private JsonObject filterToJson(SqlFilter filter) {
+		JsonObject object = new JsonObject();
+		switch(filter.getType()) {
+		case Equals:
+			object.addProperty("type", "selector");
+			object.addProperty("dimension", filter.getLeftOp());
+			object.addProperty("value", filter.getRightOp());
+			break;
+		case in:
+			object.addProperty("type", "in");
+			object.addProperty("dimension", filter.getLeftOp());
+			
+			JsonArray array = new JsonArray();
+			for (String item : filter.getRightOpArr())
+				array.add(item);
+			object.add("values", array);
+			break;
+		default:
+			throw new UnsupportedOperationException("Filter type: " + filter.getType().operator);
+		}
+		
+		return object;
 	}
 }

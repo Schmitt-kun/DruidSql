@@ -32,7 +32,15 @@ public class SqlToJsonTest {
 	
 	@Test
 	public void test() throws SQLException {
-		String query = "SELECT dimension, metric FROM table1 WHERE dimension > 1";
+		String query = "SELECT dimension, metric FROM table1 WHERE dimension = 1";
+		sqlDispatch.dispatch(query);
+		
+		System.out.println(sqlDispatch.toGson());
+	}
+	
+	@Test
+	public void testIn() throws SQLException {
+		String query = "SELECT dimension, metric FROM table1 WHERE dimension in (1,2,3)";
 		sqlDispatch.dispatch(query);
 		
 		System.out.println(sqlDispatch.toGson());
@@ -40,9 +48,9 @@ public class SqlToJsonTest {
 	
 	@Test
 	public void convertGroupToString() throws SQLException {
-		SqlFilter filter1 = new SqlFilter("dimension", FilterType.NotEquals, "1");
+		SqlFilter filter1 = new SqlFilter("dimension", FilterType.Equals, "1");
 		SqlFilterGroup filterGroup1 = new SqlFilterGroup(filter1);
-		SqlFilter filter2 = new SqlFilter("dimension", FilterType.Greater, "3");
+		SqlFilter filter2 = new SqlFilter("dimension", FilterType.Equals, "3");
 		SqlFilterGroup filterGroup2 = new SqlFilterGroup(filter2);
 		SqlFilterGroup rootGroup = new SqlFilterGroup(FilterGroupType.AND, filterGroup1, filterGroup2);
 
