@@ -3,19 +3,20 @@ apply plugin: "java"
 defaultTasks "clean", "all"
 
 dependencies {
-	compile fileTree(dir: "./lib", include: "*.jar")
+    compile fileTree(dir: "./lib", include: "*.jar");
+    testCompile fileTree(dir: "./lib-test", include: "*.jar");
 }
 
 jar {
-	doFirst {
-		manifest {
-			def cp = configurations.compile.collect { "lib/${it.name}" }.join(" ")
-			attributes(
-				"Main-Class": "ru.kuznetsov.sqldispatch.Main",
-				"Class-Path": cp
-			)
-		}
-	}
+    doFirst {
+        manifest {
+            def cp = configurations.compile.collect { "lib/${it.name}" }.join(" ")
+            attributes(
+                "Main-Class": "ru.kuznetsov.sqldispatch.Main",
+                "Class-Path": cp
+            )
+        }
+    }
 }
 
 sourceSets {
