@@ -70,8 +70,9 @@ public class SqlDispatch {
 			where();
 	}
 	
-	private void splitQuery(String query) {
+	public void splitQuery(String query) {
 		Integer lastWordBegin = null;
+		if (words == null) words = new ArrayList<>();
 		
 		for (int i = 0; i < query.length(); i++) {
 			if (query.charAt(i) == ' ' 
@@ -82,7 +83,9 @@ public class SqlDispatch {
 					words.add(word);
 					lastWordBegin = null;
 				}
-			} else if (query.charAt(i) == ',') {
+			} else if (query.charAt(i) == ','
+					|| query.charAt(i) == '('
+					|| query.charAt(i) == ')') {
 				if (lastWordBegin != null) {
 					String word = query.substring(lastWordBegin, i);
 					words.add(word);
@@ -168,7 +171,22 @@ public class SqlDispatch {
 			String val = nextWord();
 			
 			FilterType type = SqlFilter.findFiltwerType(op);
-			filter = new SqlFilter(field, type, val);
+			if (type != FilterType.in) {
+				filter = new SqlFilter(field, type, val);
+			} else {
+				if(!"(".equals(val))
+					throw new SQLException("After IN expectyed \"(\", but was \"" + val + "\"");
+				
+				List<String> inFields = new ArrayList<>();
+				do {
+					val = nextWord();
+					inFields.add(val);
+					val = nextWord();
+				} while(!")".equals(val));
+				
+				String[] inFieldsArray = inFields.toArray(new String[]{});
+				filter = new SqlFilter(field, type, inFieldsArray);
+			}
 			if (typeGroup != null) {
 				SqlFilterGroup newFilter = new SqlFilterGroup(filter);
 				if (currentGroup == rootGroup)
@@ -221,33 +239,53 @@ public class SqlDispatch {
 		query.add("intervals", intervals);
 		
 		if(rootGroup != null) {
-			query.addProperty("filter", filterGroupsToJson(rootGroup));
+			query.add("filter", filterGroupsToJson(rootGroup));
 		}
 		
 		return gson.toJson(query);
 	}
 	
-	public String filterGroupsToJson(SqlFilterGroup group) {
+	public JsonObject filterGroupsToJson(SqlFilterGroup group) {
 		
 		switch (group.getType()) {
 		case SINGLE:
-			Gson gson = new GsonBuilder().setPrettyPrinting().create();
-			JsonObject object = new JsonObject();
-			object.addProperty("type", "selector");
-			object.addProperty("dimension", group.getFilter().getLeftOp());
-			object.addProperty("value", group.getFilter().getRightOp());
-			return gson.toJson(object);
+			//Gson gson = new GsonBuilder().setPrettyPrinting().create();
+			return filterToJson(group.getFilter());
 		case AND:
 		case OR:
 			JsonParser parser = new JsonParser();
 			JsonObject object1 = new JsonObject();
 			object1.addProperty("type", group.getType().name());
 			JsonArray array = new JsonArray();
-			array.add(parser.parse(filterGroupsToJson(group.getLeftOp())));
-			array.add(parser.parse(filterGroupsToJson(group.getRightOp())));
+			array.add(filterGroupsToJson(group.getLeftOp()));
+			array.add(filterGroupsToJson(group.getRightOp()));
 			object1.add("fields", array);
-			return object1.toString();
+			return object1;
 		}
-		return "\"\"";
+		return null;
+	}
+	
+	private JsonObject filterToJson(SqlFilter filter) {
+		JsonObject object = new JsonObject();
+		switch(filter.getType()) {
+		case Equals:
+			object.addProperty("type", "selector");
+			object.addProperty("dimension", filter.getLeftOp());
+			object.addProperty("value", filter.getRightOp());
+			break;
+		case in:
+			object.addProperty("type", "in");
+			object.addProperty("dimension", filter.getLeftOp());
+			
+			JsonArray array = new JsonArray();
+			for (String item : filter.getRightOpArr())
+				array.add(item);
+			object.add("values", array);
+			break;
+		default:
+			throw new UnsupportedOperationException("Filter type: " + filter.getType().operator);
+		}
+		
+		return object;
 	}
 }

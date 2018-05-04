@@ -1,4 +1,4 @@
-package ru.kuznetsov.sqldispatch;
+ package ru.kuznetsov.sqldispatch;
 
 import static org.junit.Assert.*;
 

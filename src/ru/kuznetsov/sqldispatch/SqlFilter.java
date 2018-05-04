@@ -6,9 +6,10 @@ public class SqlFilter {
 	private FilterType type;
 	private String leftOp;
 	private String rightOp;
+	private String[] rightOpArr;
 
 	public enum FilterType {
-		Equals("="), Greater(">"), Less("<"), NotEquals("<>"), Like("LIKE");
+		Equals("="), Greater(">"), Less("<"), NotEquals("<>"), Like("LIKE"), in("IN");
 		
 		String operator;
 		FilterType(String operator) {
@@ -31,6 +32,10 @@ public class SqlFilter {
 		return rightOp;
 	}
 	
+	public String[] getRightOpArr() {
+		return rightOpArr;
+	}
+
 	public SqlFilter(String leftOp, FilterType type, String rightOp) {
 		this.type = type;
 		this.leftOp = leftOp;
@@ -45,6 +50,14 @@ public class SqlFilter {
 		this.rightOp = rightOp;
 	}
 	
+	public SqlFilter(String leftOp, FilterType type, String[] rightOpArr) {
+		/*if (type != FilterType.Between)
+			throw new IllegalArgumentException("Using constructor with multiple values nor for BETWEEN filter.");*/
+		this.type = type;
+		this.leftOp = leftOp;
+		this.rightOpArr = rightOpArr;
+	}
+	
 	public static FilterType findFiltwerType(String operator) throws SQLException {
 		switch (operator.toUpperCase()) {
 		case "=":
@@ -57,6 +70,8 @@ public class SqlFilter {
 			return FilterType.NotEquals;
 		case "LIKE":
 			return FilterType.Like;
+		case "IN":
+			return FilterType.in;
 		default:
 			throw new SQLException("Unknown operator: \"" + operator + "\"");
 		}
@@ -86,13 +101,34 @@ public class SqlFilter {
 				return false;
 		} else if (!leftOp.equals(other.leftOp))
 			return false;
-		if (rightOp == null) {
-			if (other.rightOp != null)
-				return false;
-		} else if (!rightOp.equals(other.rightOp))
-			return false;
+		
 		if (type != other.type)
 			return false;
+		if (type != FilterType.in) {
+			if (rightOp == null) {
+				if (other.rightOp != null)
+					return false;
+			} else if (!rightOp.equals(other.rightOp))
+				return false;
+		} else {
+			if (rightOpArr == null) {
+				return other.rightOpArr == null;
+			} else {
+				if (rightOpArr.length != other.rightOpArr.length)
+					return false;
+				for(int i = 0 ; i < rightOpArr.length; i++) {
+					if (rightOpArr[i] == null) {
+						if(other.rightOpArr[i] == null)
+							continue;
+						else
+							return false;
+					}
+					if (!rightOpArr[i].equals(other.rightOpArr[i]))
+						return false;
+				}
+			}
+		}
+		
 		return true;
 	}
 	
