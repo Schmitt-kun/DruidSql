@@ -32,7 +32,31 @@ sourceSets {
     }
 }
 
+task removeDist() << {
+    def distDir = file("./dist")
+    if (distDir.exists()) {
+        distDir.deleteDir()
+    }
+}
+
 task all() << {
+    copy {
+        from "build/libs/"
+        into "./dist"
+    }
+    copy {
+        from "lib/"
+        into "./dist/lib"
+    }
+}
+
+task run() << {
+    exec {
+        workingDir "./dist"
+        commandLine "sh", "-c", "java -Xmx256m -jar DruidSql.jar"
+    }
 }
 
 all.dependsOn("assemble")
+run.dependsOn("all")
+clean.dependsOn("removeDist")
