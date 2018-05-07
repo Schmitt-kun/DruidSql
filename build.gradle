@@ -12,7 +12,7 @@ jar {
         manifest {
             def cp = configurations.compile.collect { "lib/${it.name}" }.join(" ")
             attributes(
-                "Main-Class": "ru.kuznetsov.sqldispatch.Main",
+                "Main-Class": "ru.kuznetsov.druidsql.Main",
                 "Class-Path": cp
             )
         }
